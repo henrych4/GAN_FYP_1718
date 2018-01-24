@@ -186,7 +186,9 @@ for epoch in range(opt.niter):
                 inputvList.append(inputv)
 
             errD_realList = netD(inputvList)
-            errD_real.backward(one) for errD_real in errD_realList
+            # update one by one or by sum of gradients
+            #errD_real.backward(one) for errD_real in errD_realList
+            sum(errD_realList).backward(one)
 
             # train with fake
             noisevList = []
@@ -199,7 +201,9 @@ for epoch in range(opt.niter):
             fakeList = [Variable(fake.data) for fake in fakeList]
 
             errD_fakeList = netD(fakeList)
-            errD_fake.backward(mone) for errD_fake in errD_fakeList
+            # update one by one or by sum of gradients
+            #errD_fake.backward(mone) for errD_fake in errD_fakeList
+            sum(errD_fakeList).backward(one)
 
             errDList = [errD_real - errD_fake for errD_real, errD_fake in zip(errD_realList, errD_fakeList)]
             optimizerD.step()
@@ -220,7 +224,10 @@ for epoch in range(opt.niter):
 
         fakeList = netG(noisevList)
         errGList = netD(fakeList)
-        errG.backward(one, retrain_variables=True) for errG in errGList
+        # update one by one or by sum of gradients
+        #errG.backward(one, retrain_variables=True) for errG in errGList
+        sum(errGList).backward(one, retrain_variables=True)
+
         optimizerG.step()
         gen_iterations += 1
 
