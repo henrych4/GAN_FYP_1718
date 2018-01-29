@@ -1,2 +1,1 @@
-modify codes in models/mixgan.py
-debug for main2.py
+debug for main2.py and mixgan.py
