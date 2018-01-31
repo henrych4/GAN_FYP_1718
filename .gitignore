@@ -6,7 +6,9 @@ church_classroom/
 face_bridge/
 face_church/
 imageNet/
+imagenet/
 *lmdb
 *swp
 _cache*
 *pyc
+.vscode/
