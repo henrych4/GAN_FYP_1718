@@ -1,0 +1,12 @@
+bedroom_bridge/
+bridge_church/
+bridge_dining/
+church_classroom/
+church_classroom/
+face_bridge/
+face_church/
+imageNet/
+*lmdb
+*swp
+_cache*
+*pyc
