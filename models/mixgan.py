@@ -9,41 +9,41 @@ class DCGAN_D(nn.Module):
         assert isize % 16 == 0, "isize has to be a multiple of 16"
 
         main_share = nn.Sequential()
-        discriminators = []
+        discriminators = nn.ModuleList()
 
         # create n discriminators
         for i in range(numOfClass):
             main = nn.Sequential()
-            main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
+            main.add_module('initial{}.conv.{}-{}'.format(i, nc, ndf),
                             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
-            main.add_module('initial.relu.{0}'.format(ndf),
+            main.add_module('initial{}.relu.{}'.format(i, ndf),
                             nn.LeakyReLU(0.2, inplace=True))
             csize, cndf = isize / 2, ndf
 
             # Extra layers
             for t in range(n_extra_layers):
-                main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
+                main.add_module('extra-layers{}-{}.{}.conv'.format(i, t, cndf),
                                 nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
-                main.add_module('extra-layers-{0}.{1}.batchnorm'.format(t, cndf),
+                main.add_module('extra-layers{}-{}.{}.batchnorm'.format(i, t, cndf),
                                 nn.BatchNorm2d(cndf))
-                main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
+                main.add_module('extra-layers{}-{}.{}.relu'.format(i, t, cndf),
                                 nn.LeakyReLU(0.2, inplace=True))
 
             while csize > 4:
                 in_feat = cndf
                 out_feat = cndf * 2
-                main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
+                main.add_module('pyramid{}.{}-{}.conv'.format(i, in_feat, out_feat),
                             nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
-                main.add_module('pyramid.{0}.batchnorm'.format(out_feat),
+                main.add_module('pyramid{}.{}.batchnorm'.format(i, out_feat),
                                 nn.BatchNorm2d(out_feat))
-                main.add_module('pyramid.{0}.relu'.format(out_feat),
+                main.add_module('pyramid{}.{}.relu'.format(i, out_feat),
                                 nn.LeakyReLU(0.2, inplace=True))
                 cndf = cndf * 2
                 csize = csize / 2
 
             discriminators.append(main)
 
-        main_share.add_module('final.{0}-{1}.conv'.format(cndf, 1),
+        main_share.add_module('final{}.{}-{}.conv'.format(i, cndf, 1),
                         nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
 
         self.discriminators = discriminators
@@ -52,8 +52,8 @@ class DCGAN_D(nn.Module):
     def forward(self, inputList):
         outputList = []
 
-        for i, input in range(inputList):
-            output = self.main_share(self.discriminator[i](input))
+        for i, input in enumerate(inputList):
+            output = self.main_share(self.discriminators[i](input))
             output = output.mean(0)
             outputList.append(output.view(1))
 
@@ -66,7 +66,7 @@ class DCGAN_G(nn.Module):
         assert isize % 16 == 0, "isize has to be a multiple of 16"
         
         main_share = nn.Sequential()
-        generators = []
+        generators = nn.ModuleList()
 
         # create n generators
         for i in range(numOfClass):
@@ -76,37 +76,37 @@ class DCGAN_G(nn.Module):
                 tisize = tisize * 2
 
             main = nn.Sequential()
-            main.add_module('initial.{0}-{1}.convt'.format(nz, cngf),
+            main.add_module('initial{}.{}.{}.convt'.format(i, nz, cngf),
                     nn.ConvTranspose2d(nz, cngf, 4, 1, 0, bias=False))
-            main.add_module('initial.{0}.batchnorm'.format(cngf),
+            main.add_module('initial{}.{}.batchnorm'.format(i, cngf),
                 nn.BatchNorm2d(cngf))
-            main.add_module('initial.{0}.relu'.format(cngf),
+            main.add_module('initial{}.{}.relu'.format(i, cngf),
                     nn.ReLU(True))
 
             csize, cngf = 4, cngf
             while csize < isize//2:
-                main.add_module('pyramid.{0}-{1}.convt'.format(cngf, cngf//2),
+                main.add_module('pyramid{}.{}-{}.convt'.format(i, cngf, cngf//2),
                         nn.ConvTranspose2d(cngf, cngf//2, 4, 2, 1, bias=False))
-                main.add_module('pyramid.{0}.batchnorm'.format(cngf//2),
+                main.add_module('pyramid{}.{}.batchnorm'.format(i, cngf//2),
                         nn.BatchNorm2d(cngf//2))
-                main.add_module('pyramid.{0}.relu'.format(cngf//2),
+                main.add_module('pyramid{}.{}.relu'.format(i, cngf//2),
                         nn.ReLU(True))
                 cngf = cngf // 2
                 csize = csize * 2
 
             for t in range(n_extra_layers):
-                main.add_module('extra-layers-{0}.{1}.conv'.format(t, cngf),
+                main.add_module('extra-layers{}-{}.{}.conv'.format(i, t, cngf),
                                 nn.Conv2d(cngf, cngf, 3, 1, 1, bias=False))
-                main.add_module('extra-layers-{0}.{1}.batchnorm'.format(t, cngf),
+                main.add_module('extra-layers{}-{}.{}.batchnorm'.format(i, t, cngf),
                                 nn.BatchNorm2d(cngf))
-                main.add_module('extra-layers-{0}.{1}.relu'.format(t, cngf),
+                main.add_module('extra-layers{}-{}.{}.relu'.format(i, t, cngf),
                                 nn.ReLU(True))
 
             generators.append(main)
         
-        main_share.add_module('final.{0}-{1}.convt'.format(cngf, nc),
+        main_share.add_module('final{}.{}-{}.convt'.format(i, cngf, nc),
                 nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
-        main_share.add_module('final.{0}.tanh'.format(nc),
+        main_share.add_module('final{}.{}.tanh'.format(i, nc),
                 nn.Tanh())
         
         self.generators = generators

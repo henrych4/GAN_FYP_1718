@@ -56,6 +56,7 @@ if opt.experiment is None:
     opt.experiment = 'samples'
 elif opt.experiment[-1] == '/':
     opt.experiment = opt.experiment[0:-1]
+os.system('mkdir {0}'.format(opt.experiment))
 
 opt.manualSeed = random.randint(1, 10000) # fix seed
 print("Random Seed: ", opt.manualSeed)
@@ -118,15 +119,14 @@ print(netG)
 
 netD = mixgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, n_extra_layers)
 
+netD.apply(weights_init)
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
 print(netD)
 
 input = torch.FloatTensor(opt.batchSize, nc, opt.imageSize, opt.imageSize)
 noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
-noiseList = [noise for i in range(numOfClass)]
 fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
-fixedNoiseList = [fixed_noise for i in range(numOfClass)]
 one = torch.FloatTensor([1])
 mone = one * -1
 
@@ -137,6 +137,8 @@ if opt.cuda:
     one, mone = one.cuda(), mone.cuda()
     noise = noise.cuda()
     fixed_noise = fixed_noise.cuda()
+noiseList = [noise for i in range(numOfClass)]
+fixedNoiseList = [fixed_noise for i in range(numOfClass)]
 
 # setup optimizer
 if opt.adam:
@@ -194,7 +196,7 @@ for epoch in range(opt.niter):
             noisevList = []
             for noise in noiseList:
                 noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
-                noisev = Variable(noise1, volatile = True) # totally freeze netG
+                noisev = Variable(noise, volatile = True) # totally freeze netG
                 noisevList.append(noisev)
 
             fakeList = netG(noisevList)
@@ -225,13 +227,15 @@ for epoch in range(opt.niter):
         fakeList = netG(noisevList)
         errGList = netD(fakeList)
         # update one by one or by sum of gradients
-        #errG.backward(one, retrain_variables=True) for errG in errGList
-        sum(errGList).backward(one, retrain_variables=True)
+        #errG.backward(one, retain_variables=True) for errG in errGList
+        sum(errGList).backward(one, retain_variables=True)
 
         optimizerG.step()
         gen_iterations += 1
 
-        print('[{}/{}][{}/{}][{}] Loss_D: {} Loss_G: {}'.format(epoch, opt.niter, i, data_length, gen_iterations, errDList, errGList))
+        print('[{}/{}][{}/{}][{}]'.format(epoch, opt.niter, i, data_length, gen_iterations))
+        print([errD.data[0] for errD in errDList])
+        print([errG.data[0] for errG in errGList])
 
         if gen_iterations % 500 == 0:
             for index, real_cpu in enumerate(real_cpu_list):
