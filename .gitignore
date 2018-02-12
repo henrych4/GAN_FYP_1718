@@ -12,3 +12,4 @@ imagenet/
 _cache*
 *pyc
 .vscode/
+output/

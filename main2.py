@@ -189,8 +189,9 @@ for epoch in range(opt.niter):
 
             errD_realList = netD(inputvList)
             # update one by one or by sum of gradients
-            #errD_real.backward(one) for errD_real in errD_realList
-            sum(errD_realList).backward(one)
+            for errD_real in errD_realList:
+                errD_real.backward(one)
+            #sum(errD_realList).backward(one)
 
             # train with fake
             noisevList = []
@@ -204,8 +205,9 @@ for epoch in range(opt.niter):
 
             errD_fakeList = netD(fakeList)
             # update one by one or by sum of gradients
-            #errD_fake.backward(mone) for errD_fake in errD_fakeList
-            sum(errD_fakeList).backward(one)
+            for errD_fake in errD_fakeList:
+                errD_fake.backward(mone)
+            #sum(errD_fakeList).backward(mone)
 
             errDList = [errD_real - errD_fake for errD_real, errD_fake in zip(errD_realList, errD_fakeList)]
             optimizerD.step()
@@ -227,15 +229,16 @@ for epoch in range(opt.niter):
         fakeList = netG(noisevList)
         errGList = netD(fakeList)
         # update one by one or by sum of gradients
-        #errG.backward(one, retain_variables=True) for errG in errGList
-        sum(errGList).backward(one, retain_variables=True)
+        for errG in errGList:
+            errG.backward(one, retain_variables=True)
+        #sum(errGList).backward(one, retain_variables=True)
 
         optimizerG.step()
         gen_iterations += 1
 
         print('[{}/{}][{}/{}][{}]'.format(epoch, opt.niter, i, data_length, gen_iterations))
-        print([errD.data[0] for errD in errDList])
-        print([errG.data[0] for errG in errGList])
+        print(['{0:.10g}'.format(errD.data[0]) for errD in errDList])
+        print(['{0:.10g}'.format(errG.data[0]) for errG in errGList])
 
         if gen_iterations % 500 == 0:
             for index, real_cpu in enumerate(real_cpu_list):
@@ -247,6 +250,6 @@ for epoch in range(opt.niter):
                 fake.data = fake.data.mul(0.5).add(0.5)
                 vutils.save_image(fake.data, '{}/fake_sameples_{}_{}.png'.format(opt.experiment, index, gen_iterations))
 
-    # do checkpointing
-    torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
-    torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(opt.experiment, epoch))
+            # do checkpointing
+            torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
+            torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(opt.experiment, epoch))
