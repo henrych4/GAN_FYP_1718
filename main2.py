@@ -1,4 +1,6 @@
 from __future__ import print_function
+import os
+import sys
 import argparse
 import random
 import torch
@@ -7,12 +9,10 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
+from torch.autograd import Variable
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from torch.autograd import Variable
-import os
-import sys
 
 import models.dcgan as dcgan
 import models.mlp as mlp
@@ -32,8 +32,8 @@ parser.add_argument('--niter', type=int, default=25, help='number of epochs to t
 parser.add_argument('--lrD', type=float, default=0.00005, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--lrG', type=float, default=0.00005, help='learning rate for Generator, default=0.00005')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-parser.add_argument('--cuda'  , action='store_true', help='enables cuda')
-parser.add_argument('--ngpu'  , type=int, default=1, help='number of GPUs to use')
+parser.add_argument('--cuda', action='store_true', help='enables cuda')
+parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
 parser.add_argument('--clamp_lower', type=float, default=-0.01)
@@ -75,22 +75,22 @@ data_length = sys.maxsize
 for datasetType, dataPath in zip(opt.dataset, opt.datapath):
     if datasetType in ['imagenet', 'folder', 'lfw']:
         dataset = dset.ImageFolder(root=dataPath,
-                                    transform=transforms.Compose([
-                                        transforms.Scale(opt.imageSize),
-                                        transforms.CenterCrop(opt.imageSize),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                    ]))
+                                   transform=transforms.Compose([
+                                       transforms.Scale(opt.imageSize),
+                                       transforms.CenterCrop(opt.imageSize),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                   ]))
     elif datasetType == 'cifar10':
         dataset = dset.CIFAR10(root=dataPath, download=False,
-                                    transform=transforms.Compose([
-                                        transforms.Scale(opt.imageSize),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                    ]))
+                               transform=transforms.Compose([
+                                   transforms.Scale(opt.imageSize),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               ]))
     assert dataset
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
-                                            shuffle=True, num_workers=int(opt.workers))
+                                             shuffle=True, num_workers=int(opt.workers))
     data_length = min(data_length, len(dataloader))
     dataloaderList.append(dataloader)
 
