@@ -46,6 +46,10 @@ parser.add_argument('--n_extra_layers', type=int, default=0, help='Number of ext
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--gpu', type=int, default='0', help='which gpu to use')
+parser.add_argument('--sumD', action='store_true')
+parser.add_argument('--sumG', action='store_true')
+parser.add_argument('--oneD', action='store_true')
+parser.add_argument('--oneG', action='store_true')
 
 opt = parser.parse_args()
 print(opt)
@@ -56,7 +60,8 @@ if opt.experiment is None:
     opt.experiment = 'samples'
 elif opt.experiment[-1] == '/':
     opt.experiment = opt.experiment[0:-1]
-os.system('mkdir {0}'.format(opt.experiment))
+if not os.path.isdir(opt.experiment):
+    os.system('mkdir {0}'.format(opt.experiment))
 
 opt.manualSeed = random.randint(1, 10000) # fix seed
 print("Random Seed: ", opt.manualSeed)
@@ -143,10 +148,23 @@ fixedNoiseList = [fixed_noise for i in range(numOfClass)]
 # setup optimizer
 if opt.adam:
     optimizerD = optim.Adam(netD.parameters(), lr=opt.lrD, betas=(opt.beta1, 0.999))
-    optimizerG = optim.Adam(netG.parameters(), lr=opt.lrG, betas=(opt.beta1, 0.999))
 else:
     optimizerD = optim.RMSprop(netD.parameters(), lr = opt.lrD)
-    optimizerG = optim.RMSprop(netG.parameters(), lr = opt.lrG)
+if opt.sumG:
+    if opt.adam:
+        optimizerG = optim.Adam(netG.parameters(), lr=opt.lrG, betas=(opt.beta1, 0.999))
+    else:
+        optimizerG = optim.RMSprop(netG.parameters(), lr = opt.lrG)
+if opt.oneG:
+    optimizerGList = []
+    for i in range(numOfClass):
+        params = list(netG.generators[i].parameters()) + list(netG.main_share.parameters())
+        if opt.adam:
+            optimizerG = optim.Adam(params, lr=opt.lrG, betas=(opt.beta1, 0.999))
+        else:
+            optimizerG = optim.RMSprop(params, lr=opt.lrG)
+            optimizerGList.append(optimizerG)
+
 
 gen_iterations = 0
 for epoch in range(opt.niter):
@@ -188,10 +206,15 @@ for epoch in range(opt.niter):
                 inputvList.append(inputv)
 
             errD_realList = netD(inputvList)
+            if opt.sumD:
+                sum(errD_realList).backward(one)
+                
+            '''    
             # update one by one or by sum of gradients
             for errD_real in errD_realList:
                 errD_real.backward(one)
             #sum(errD_realList).backward(one)
+            '''
 
             # train with fake
             noisevList = []
@@ -204,10 +227,15 @@ for epoch in range(opt.niter):
             fakeList = [Variable(fake.data) for fake in fakeList]
 
             errD_fakeList = netD(fakeList)
+            if opt.sumD:
+                sum(errD_fakeList).backward(mone)
+            
+            '''
             # update one by one or by sum of gradients
             for errD_fake in errD_fakeList:
                 errD_fake.backward(mone)
             #sum(errD_fakeList).backward(mone)
+            '''
 
             errDList = [errD_real - errD_fake for errD_real, errD_fake in zip(errD_realList, errD_fakeList)]
             optimizerD.step()
@@ -228,12 +256,23 @@ for epoch in range(opt.niter):
 
         fakeList = netG(noisevList)
         errGList = netD(fakeList)
+        if opt.sumG:
+            sum(errGList).backward(one, retain_variables=True)
+            optimizerG.step()
+        elif opt.oneG:
+            for errG, optimizerG in zip(errGList, optimizerGList):
+                netG.zero_grad()
+                optimizerG.zero_grad()
+                errG.backward(one, retain_variables=True)
+                optimizerG.step()
+        '''
         # update one by one or by sum of gradients
         for errG in errGList:
             errG.backward(one, retain_variables=True)
         #sum(errGList).backward(one, retain_variables=True)
+        '''
 
-        optimizerG.step()
+        #optimizerG.step()
         gen_iterations += 1
 
         print('[{}/{}][{}/{}][{}]'.format(epoch, opt.niter, i, data_length, gen_iterations))
@@ -248,7 +287,7 @@ for epoch in range(opt.niter):
             fakeList = netG(fixedNoisevList)
             for index, fake in enumerate(fakeList):
                 fake.data = fake.data.mul(0.5).add(0.5)
-                vutils.save_image(fake.data, '{}/fake_sameples_{}_{}.png'.format(opt.experiment, index, gen_iterations))
+                vutils.save_image(fake.data, '{}/fake_samples_{}_{}.png'.format(opt.experiment, index, gen_iterations))
 
             # do checkpointing
             torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
