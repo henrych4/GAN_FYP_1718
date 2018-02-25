@@ -11,14 +11,15 @@ class DCGAN_D(nn.Module):
         main_share = nn.Sequential()
         discriminators = nn.ModuleList()
 
+        main_share.add_module('initial.conv.{}-{}(share)'.format(nc, ndf),
+                              nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+        main_share.add_module('initial.relu.{}(share)'.format(ndf),
+                              nn.LeakyReLU(0.2, inplace=True))
+
         # create n discriminators
         for i in range(numOfClass):
-            main = nn.Sequential()
-            main.add_module('initial{}.conv.{}-{}'.format(i, nc, ndf),
-                            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
-            main.add_module('initial{}.relu.{}'.format(i, ndf),
-                            nn.LeakyReLU(0.2, inplace=True))
             csize, cndf = isize / 2, ndf
+            main = nn.Sequential()
 
             # Extra layers
             for t in range(n_extra_layers):
@@ -33,7 +34,7 @@ class DCGAN_D(nn.Module):
                 in_feat = cndf
                 out_feat = cndf * 2
                 main.add_module('pyramid{}.{}-{}.conv'.format(i, in_feat, out_feat),
-                            nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
+                                nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
                 main.add_module('pyramid{}.{}.batchnorm'.format(i, out_feat),
                                 nn.BatchNorm2d(out_feat))
                 main.add_module('pyramid{}.{}.relu'.format(i, out_feat),
@@ -41,10 +42,10 @@ class DCGAN_D(nn.Module):
                 cndf = cndf * 2
                 csize = csize / 2
 
-            discriminators.append(main)
+            main.add_module('final{}.{}-{}.conv'.format(i, cndf, 1),
+                            nn.Conv2d(cndf, 1, 4, 1, 0, bias=False)) 
 
-        main_share.add_module('final{}.{}-{}.conv'.format(i, cndf, 1),
-                        nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
+            discriminators.append(main)
 
         self.discriminators = discriminators
         self.main_share = main_share
@@ -53,7 +54,7 @@ class DCGAN_D(nn.Module):
         outputList = []
 
         for i, input in enumerate(inputList):
-            output = self.main_share(self.discriminators[i](input))
+            output = self.discriminators[i](self.main_share(input))
             output = output.mean(0)
             outputList.append(output.view(1))
 
@@ -104,9 +105,9 @@ class DCGAN_G(nn.Module):
 
             generators.append(main)
         
-        main_share.add_module('final{}.{}-{}.convt'.format(i, cngf, nc),
+        main_share.add_module('final.{}-{}.convt(share)'.format(cngf, nc),
                 nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
-        main_share.add_module('final{}.{}.tanh'.format(i, nc),
+        main_share.add_module('final.{}.tanh(share)'.format(nc),
                 nn.Tanh())
         
         self.generators = generators
