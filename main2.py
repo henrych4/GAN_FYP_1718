@@ -163,7 +163,7 @@ if opt.oneG:
             optimizerG = optim.Adam(params, lr=opt.lrG, betas=(opt.beta1, 0.999))
         else:
             optimizerG = optim.RMSprop(params, lr=opt.lrG)
-            optimizerGList.append(optimizerG)
+        optimizerGList.append(optimizerG)
 
 
 gen_iterations = 0
