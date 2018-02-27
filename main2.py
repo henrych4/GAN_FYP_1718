@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import random
+import time
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -18,6 +19,7 @@ import models.dcgan as dcgan
 import models.mlp as mlp
 import models.mixgan as mixgan
 
+startTime = time.time()
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', nargs='+', help='vector of types of input datasets: cifar10/imagenet/folder/lfw')
 parser.add_argument('--datapath', nargs='+', help='vector of paths to input datasets')
@@ -302,3 +304,8 @@ for epoch in range(opt.niter):
             # do checkpointing
             torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
             torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(opt.experiment, epoch))
+
+endTime = time.time()
+minute, second = divmod(endTime - startTime, 60)
+hour, minute = divmod(m, 60)
+print('Total time spent:{}h {}m {0:.2f}s'.format(int(hour), int(minute), second))
