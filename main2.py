@@ -30,6 +30,8 @@ parser.add_argument('--nc', type=int, default=3, help='input image channels')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
+parser.add_argument('--nshareD', type=int, default=1, help='number of share layer in D')
+parser.add_argument('--nshareG', type=int, default=1, help='number of share layer in G')
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
 parser.add_argument('--lrD', type=float, default=0.00005, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--lrG', type=float, default=0.00005, help='learning rate for Generator, default=0.00005')
@@ -117,14 +119,14 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-netG = mixgan.DCGAN_G(numOfClass, opt.imageSize, nz, nc, ngf, ngpu, n_extra_layers)
+netG = mixgan.DCGAN_G(numOfClass, opt.imageSize, nz, nc, ngf, ngpu, nshareG, n_extra_layers)
 
 netG.apply(weights_init)
 if opt.netG != '': # load checkpoint if nnceded
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = mixgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, n_extra_layers)
+netD = mixgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, nshareD, n_extra_layers)
 
 netD.apply(weights_init)
 if opt.netD != '':
