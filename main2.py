@@ -208,8 +208,8 @@ for epoch in range(opt.niter):
             errD_realList = netD(inputvList)
             if opt.sumD:
                 sum(errD_realList).backward(one)
-                
-            '''    
+
+            '''
             # update one by one or by sum of gradients
             for errD_real in errD_realList:
                 errD_real.backward(one)
@@ -229,7 +229,7 @@ for epoch in range(opt.niter):
             errD_fakeList = netD(fakeList)
             if opt.sumD:
                 sum(errD_fakeList).backward(mone)
-            
+
             '''
             # update one by one or by sum of gradients
             for errD_fake in errD_fakeList:
