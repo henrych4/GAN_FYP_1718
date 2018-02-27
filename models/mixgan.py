@@ -7,7 +7,8 @@ class DCGAN_D(nn.Module):
         super(DCGAN_D, self).__init__()
         self.ngpu = ngpu
         assert isize % 16 == 0, "isize has to be a multiple of 16"
-        osize = isize//2
+        osize, ondf = isize//2, ndf
+
 
         main_share = nn.Sequential()
         discriminators = nn.ModuleList()
@@ -17,19 +18,20 @@ class DCGAN_D(nn.Module):
                 nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
         main_share.add_module('initial.relu.{}(share)'.format(ndf),
                 nn.LeakyReLU(0.2, inplace=True))
+
         while osize > isize//pow(2, nshareD):
-            main_share.add_module('pyarmid{}-{}.conv(share)'.format(cndf, cndf*2),
-                    nn.Conv2d(cndf, cndf*2, 4, 2, 1, bias=False))
-            main_share.add_module('pyramid.{}.batchnorm(share)'.format(cndf*2),
-                    nn.batchNorm2d(cndf*2))
-            main_share.add_module('pyramid.{}.relu(share)'.format(cndf*2),
+            main_share.add_module('pyarmid{}-{}.conv(share)'.format(ondf, ondf*2),
+                    nn.Conv2d(ondf, ondf*2, 4, 2, 1, bias=False))
+            main_share.add_module('pyramid.{}.batchnorm(share)'.format(ondf*2),
+                    nn.BatchNorm2d(ondf*2))
+            main_share.add_module('pyramid.{}.relu(share)'.format(ondf*2),
                     nn.LeakyReLU(0.2, inplace=True))
-            cndf = cndf * 2
+            ondf = ondf * 2
             osize = osize / 2
 
         # create n discriminators
         for i in range(numOfClass):
-            csize, cndf = osize, ndf
+            csize, cndf = osize, ondf
             main = nn.Sequential()
 
             # Extra layers

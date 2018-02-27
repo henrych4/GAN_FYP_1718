@@ -30,8 +30,8 @@ parser.add_argument('--nc', type=int, default=3, help='input image channels')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
-parser.add_argument('--nshareD', type=int, default=1, help='number of share layer in D')
-parser.add_argument('--nshareG', type=int, default=1, help='number of share layer in G')
+parser.add_argument('--nshareD', type=int, default=1, help='number of share layer in D(1-4)')
+parser.add_argument('--nshareG', type=int, default=1, help='number of share layer in G(1-4)')
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
 parser.add_argument('--lrD', type=float, default=0.00005, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--lrG', type=float, default=0.00005, help='learning rate for Generator, default=0.00005')
@@ -108,6 +108,8 @@ nz = int(opt.nz)
 ngf = int(opt.ngf)
 ndf = int(opt.ndf)
 nc = int(opt.nc)
+nshareG = int(opt.nshareG)
+nshareD = int(opt.nshareD)
 n_extra_layers = int(opt.n_extra_layers)
 
 # custom weights initialization called on netG and netD
@@ -237,13 +239,6 @@ for epoch in range(opt.niter):
             if opt.sumD:
                 sum(errD_realList).backward(one)
 
-            '''
-            # update one by one or by sum of gradients
-            for errD_real in errD_realList:
-                errD_real.backward(one)
-            #sum(errD_realList).backward(one)
-            '''
-
             # train with fake
             noisevList = []
             for noise in noiseList:
@@ -257,13 +252,6 @@ for epoch in range(opt.niter):
             errD_fakeList = netD(fakeList)
             if opt.sumD:
                 sum(errD_fakeList).backward(mone)
-
-            '''
-            # update one by one or by sum of gradients
-            for errD_fake in errD_fakeList:
-                errD_fake.backward(mone)
-            #sum(errD_fakeList).backward(mone)
-            '''
 
             errDList = [errD_real - errD_fake for errD_real, errD_fake in zip(errD_realList, errD_fakeList)]
             optimizerD.step()
@@ -293,12 +281,6 @@ for epoch in range(opt.niter):
                 errG.backward(one, retain_variables=True)
                 optimizerG.step()
             optimizerG_share.step()
-        '''
-        # update one by one or by sum of gradients
-        for errG in errGList:
-            errG.backward(one, retain_variables=True)
-        #sum(errGList).backward(one, retain_variables=True)
-        '''
 
         #optimizerG.step()
         gen_iterations += 1
