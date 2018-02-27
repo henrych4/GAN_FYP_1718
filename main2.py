@@ -148,10 +148,25 @@ noiseList = [noise for i in range(numOfClass)]
 fixedNoiseList = [fixed_noise for i in range(numOfClass)]
 
 # setup optimizer
-if opt.adam:
-    optimizerD = optim.Adam(netD.parameters(), lr=opt.lrD, betas=(opt.beta1, 0.999))
-else:
-    optimizerD = optim.RMSprop(netD.parameters(), lr = opt.lrD)
+assert((opt.sumD or opt.oneD) and (opt.sumG or opt.oneG))
+if opt.sumD:
+    if opt.adam:
+        optimizerD = optim.Adam(netD.parameters(), lr=opt.lrD, betas=(opt.beta1, 0.999))
+    else:
+        optimizerD = optim.RMSprop(netD.parameters(), lr = opt.lrD)
+if opt.oneD:
+    optimizerDList = []
+    if opt.adam:
+        optimizerD_share = optim.Adam(netD.main_share.parameters(), lr=opt.lrD/numOfClass, betas=(opt.beta1, 0.999))
+    else:
+        optimizerD_share = optim.RMSprop(netD.main_share.parameters(), lr=opt.lrD/numOfClass)
+    for i in range(numOfClass):
+        params = netD.discriminators[i].parameters()
+        if opt.adam:
+            optimizerD = optim.Adam(params, lr=opt.lrD, betas=(opt.beta1, 0.999))
+        else:
+            optimizerD = optim.Adam(params, lr=opt.lrD)
+        optimizerDList.append(optimizerD)
 if opt.sumG:
     if opt.adam:
         optimizerG = optim.Adam([
@@ -176,7 +191,6 @@ if opt.oneG:
         else:
             optimizerG = optim.RMSprop(params, lr=opt.lrG)
         optimizerGList.append(optimizerG)
-
 
 gen_iterations = 0
 for epoch in range(opt.niter):
@@ -220,8 +234,8 @@ for epoch in range(opt.niter):
             errD_realList = netD(inputvList)
             if opt.sumD:
                 sum(errD_realList).backward(one)
-                
-            '''    
+
+            '''
             # update one by one or by sum of gradients
             for errD_real in errD_realList:
                 errD_real.backward(one)
@@ -241,7 +255,7 @@ for epoch in range(opt.niter):
             errD_fakeList = netD(fakeList)
             if opt.sumD:
                 sum(errD_fakeList).backward(mone)
-            
+
             '''
             # update one by one or by sum of gradients
             for errD_fake in errD_fakeList:
