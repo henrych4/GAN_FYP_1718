@@ -152,13 +152,23 @@ else:
     optimizerD = optim.RMSprop(netD.parameters(), lr = opt.lrD)
 if opt.sumG:
     if opt.adam:
-        optimizerG = optim.Adam(netG.parameters(), lr=opt.lrG, betas=(opt.beta1, 0.999))
+        optimizerG = optim.Adam([
+            {'params': netG.generators.parameters(), 'lr': opt.lrG},
+            {'params': netG.main_share.parameters(), 'lr': opt.lrG/numOfClass}
+        ], betas=(opt.beta1, 0.999))
     else:
-        optimizerG = optim.RMSprop(netG.parameters(), lr = opt.lrG)
+        optimizerG = optim.RMSprop([
+            {'params': netG.generators.parameters(), 'lr': opt.lrG},
+            {'params': netG.main_share.parameters(), 'lr': opt.lrG/numOfClass}
+        ])
 if opt.oneG:
     optimizerGList = []
+    if opt.adam:
+        optimizerG_share = optim.Adam(netG.main_share.parameters(), lr=opt.lrG/numOfClass, betas=(opt.beta1, 0.999))
+    else:
+        optimizerG_share = optim.RMSprop(netG.main_share.parameters(), lr=opt.lrG/numOfClass)
     for i in range(numOfClass):
-        params = list(netG.generators[i].parameters()) + list(netG.main_share.parameters())
+        params = netG.generators[i].parameters()
         if opt.adam:
             optimizerG = optim.Adam(params, lr=opt.lrG, betas=(opt.beta1, 0.999))
         else:
@@ -261,10 +271,10 @@ for epoch in range(opt.niter):
             optimizerG.step()
         elif opt.oneG:
             for errG, optimizerG in zip(errGList, optimizerGList):
-                netG.zero_grad()
                 optimizerG.zero_grad()
                 errG.backward(one, retain_variables=True)
                 optimizerG.step()
+            optimizerG_share.step()
         '''
         # update one by one or by sum of gradients
         for errG in errGList:
