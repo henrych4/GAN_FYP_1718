@@ -155,10 +155,16 @@ fixedNoiseList = [fixed_noise for i in range(numOfClass)]
 assert((opt.sumD or opt.oneD) and (opt.sumG or opt.oneG))
 if opt.sumD:
     if opt.adam:
-        optimizerD = optim.Adam(netD.parameters(), lr=opt.lrD, betas=(opt.beta1, 0.999))
+        optimizerD = optim.Adam([
+            {'params': netD.discriminators.parameters(), 'lr': opt.lrD},
+            {'params': netD.main_share.parameters(), 'lr': opt.lrD/numOfClass}
+        ], betas=(opt.beta1, 0.999))
     else:
-        optimizerD = optim.RMSprop(netD.parameters(), lr = opt.lrD)
-if opt.oneD:
+        optimizerD = optim.RMSprop([
+            {'params': netD.discriminators.parameters(), 'lr': opt.lrD},
+            {'params': netD.main_share.parameters(), 'lr': opt.lrD/numOfClass}
+        ])
+if opt.oneD: # not usable
     optimizerDList = []
     if opt.adam:
         optimizerD_share = optim.Adam(netD.main_share.parameters(), lr=opt.lrD/numOfClass, betas=(opt.beta1, 0.999))
@@ -279,6 +285,7 @@ for epoch in range(opt.niter):
             for errG, optimizerG in zip(errGList, optimizerGList):
                 optimizerG.zero_grad()
                 errG.backward(one, retain_variables=True)
+            for optimizerG in optimizerGList:
                 optimizerG.step()
             optimizerG_share.step()
 
