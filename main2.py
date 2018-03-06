@@ -305,5 +305,5 @@ for epoch in range(opt.niter):
 
 endTime = time.time()
 minute, second = divmod(endTime - startTime, 60)
-hour, minute = divmod(m, 60)
+hour, minute = divmod(minute, 60)
 print('Total time spent:{}h {}m {0:.2f}s'.format(int(hour), int(minute), second))
