@@ -313,4 +313,4 @@ for epoch in range(opt.niter):
 endTime = time.time()
 minute, second = divmod(endTime - startTime, 60)
 hour, minute = divmod(minute, 60)
-print('Total time spent:{}h {}m {0:.2f}s'.format(int(hour), int(minute), second))
+print('Total time spent:{0}h {1}m {2}s'.format(int(hour), int(minute), round(second, 4)))
