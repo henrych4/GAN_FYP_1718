@@ -67,15 +67,18 @@ class DCGAN_D(nn.Module):
         self.discriminators = discriminators
         self.main_share = main_share
 
-    def forward(self, inputList):
-        outputList = []
-
-        for i, input in enumerate(inputList):
-            output = self.discriminators[i](self.main_share(input))
-            output = output.mean(0)
+    def forward(self, inputList, index=None):
+        if index:
+            output = self.discriminators[index](self.main_share(inputList))
+            output = output.mean(0).view(1)
+            return output
+        else:
+            outputList = []
+            for i, input in enumerate(inputList):
+                output = self.discriminators[i](self.main_share(input))
+                output = output.mean(0)
             outputList.append(output.view(1))
-
-        return outputList
+            return outputList
 
 class DCGAN_G(nn.Module):
     def __init__(self, numOfClass, isize, nz, nc, ngf, ngpu, nshareG, n_extra_layers=0):
@@ -148,12 +151,13 @@ class DCGAN_G(nn.Module):
         self.generators = generators
         self.main_share = main_share
 
-    def forward(self, inputList):
-        outputList = []
-
-        for i, input in enumerate(inputList):
-            output = self.main_share(self.generators[i](input))
-            outputList.append(output)
-
-        # outputList = [self.main_share(self.generators[i](input)) for i, input in enumerate(inputList)]
-        return outputList
+    def forward(self, inputList, index=None):
+        if index:
+            output = self.main_share(self.generators[index](inputList))
+            return output
+        else:
+            outputList = []
+            for i, input in enumerate(inputList):
+                output = self.main_share(self.generators[i](input))
+                outputList.append(output)
+            return outputList
