@@ -51,10 +51,6 @@ parser.add_argument('--n_extra_layers', type=int, default=0, help='Number of ext
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--gpu', type=int, default='0', help='which gpu to use')
-parser.add_argument('--sumD', action='store_true')
-parser.add_argument('--sumG', action='store_true')
-parser.add_argument('--oneD', action='store_true')
-parser.add_argument('--oneG', action='store_true')
 
 opt = parser.parse_args()
 print(opt)
@@ -219,15 +215,15 @@ for epoch in range(opt.niter):
                 input.resize_as_(real_cpu).copy_(real_cpu)
                 inputv = Variable(input)
 
-                errD_real = netD(inputv)
+                errD_real = netD(inputv, index)
                 errD_real.backward(one)
 
                 # train with fake
                 noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
                 noisev = Variable(noise, volatile = True) # totally freeze netG
 
-                fake = Variable(netG(noisev).data)
-                errD_fake = netD(fake)
+                fake = Variable(netG(noisev, index).data)
+                errD_fake = netD(fake, index)
                 errD_fake.backward(mone)
 
                 errD = errD_real - errD_fake
@@ -244,8 +240,8 @@ for epoch in range(opt.niter):
             noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
             noisev = Variable(noise)
 
-            fake = netG(noisev)
-            errG = netD(fake)
+            fake = netG(noisev, index)
+            errG = netD(fake, index)
             errG.backward(one)
             optimizerG_step()
             gen_iterations += 1
@@ -256,7 +252,7 @@ for epoch in range(opt.niter):
             if cur_iterations % 500 == 0:
                 real_cpu = real_cpu.mul(0.5).add(0.5)
                 vutils.save_image(real_cpu, '{}/real_samples_{}.png'.format(opt.experiment, index))
-                fake = netG(Variable(fixedNoiseList[index], volatile=True))
+                fake = netG(Variable(fixedNoiseList[index], volatile=True), index)
                 fake.data = fake.data.mul(0.5).add(0.5)
                 vutils.save_image(fake.data, '{}/fake_samples_{}_{}.png'.format(opt.experiment, index, cur_iterations))
 
