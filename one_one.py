@@ -161,7 +161,7 @@ def optimizerD_step(index):
         optimizerD = optim.RMSprop([
             {'params': netD.discriminators[index].parameters(), 'lr': opt.lrD},
             {'params': netD.main_share.parameters(), 'lr': opt.lrD/numOfClass}
-        )]
+        ])
     optimizerD.step()
 
 def optimizerG_step(index):
@@ -215,19 +215,19 @@ for epoch in range(opt.niter):
                 input.resize_as_(real_cpu).copy_(real_cpu)
                 inputv = Variable(input)
 
-                errD_real = netD(inputv, index)
+                errD_real = netD(inputv, Variable(torch.IntTensor([index])))
                 errD_real.backward(one)
 
                 # train with fake
                 noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
                 noisev = Variable(noise, volatile = True) # totally freeze netG
 
-                fake = Variable(netG(noisev, index).data)
-                errD_fake = netD(fake, index)
+                fake = Variable(netG(noisev, Variable(torch.IntTensor([index]))).data)
+                errD_fake = netD(fake, Variable(torch.IntTensor([index])))
                 errD_fake.backward(mone)
 
                 errD = errD_real - errD_fake
-                optimizerD_step()
+                optimizerD_step(index)
 
             ############################
             # (2) Update G network
@@ -240,10 +240,10 @@ for epoch in range(opt.niter):
             noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
             noisev = Variable(noise)
 
-            fake = netG(noisev, index)
-            errG = netD(fake, index)
+            fake = netG(noisev, Variable(torch.IntTensor([index])))
+            errG = netD(fake, Variable(torch.IntTensor([index])))
             errG.backward(one)
-            optimizerG_step()
+            optimizerG_step(index)
             gen_iterations += 1
 
             print('[{}/{}][{}/{}][{}] class: {} errD: {} errG: {}'.format(epoch, opt.niter, i, data_length, cur_iterations, \
@@ -252,13 +252,14 @@ for epoch in range(opt.niter):
             if cur_iterations % 500 == 0:
                 real_cpu = real_cpu.mul(0.5).add(0.5)
                 vutils.save_image(real_cpu, '{}/real_samples_{}.png'.format(opt.experiment, index))
-                fake = netG(Variable(fixedNoiseList[index], volatile=True), index)
+                fake = netG(Variable(fixedNoiseList[index], volatile=True), Variable(torch.IntTensor([index])))
                 fake.data = fake.data.mul(0.5).add(0.5)
                 vutils.save_image(fake.data, '{}/fake_samples_{}_{}.png'.format(opt.experiment, index, cur_iterations))
 
     # do checkpointing
-    torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
-    torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(opt.experiment, epoch))
+    if epoch % 500 == 0:
+        torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
+        torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(opt.experiment, epoch))
 
 endTime = time.time()
 minute, second = divmod(endTime - startTime, 60)

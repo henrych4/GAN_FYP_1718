@@ -68,7 +68,8 @@ class DCGAN_D(nn.Module):
         self.main_share = main_share
 
     def forward(self, inputList, index=None):
-        if index:
+        if index is not None:
+            index = index.data[0]
             output = self.discriminators[index](self.main_share(inputList))
             output = output.mean(0).view(1)
             return output
@@ -152,7 +153,8 @@ class DCGAN_G(nn.Module):
         self.main_share = main_share
 
     def forward(self, inputList, index=None):
-        if index:
+        if index is not None:
+            index = index.data[0]
             output = self.main_share(self.generators[index](inputList))
             return output
         else:
