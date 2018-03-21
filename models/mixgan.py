@@ -9,15 +9,15 @@ class DCGAN_D(nn.Module):
         assert isize % 16 == 0, "isize has to be a multiple of 16"
         osize, ondf = isize//2, ndf
 
-
         main_share = nn.Sequential()
         discriminators = nn.ModuleList()
 
         # create nshareD shared module
-        main_share.add_module('initial.conv.{}-{}(share)'.format(nc, ndf),
-                nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
-        main_share.add_module('initial.relu.{}(share)'.format(ndf),
-                nn.LeakyReLU(0.2, inplace=True))
+        if nshareD != 0:
+            main_share.add_module('initial.conv.{}-{}(share)'.format(nc, ndf),
+                    nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+            main_share.add_module('initial.relu.{}(share)'.format(ndf),
+                    nn.LeakyReLU(0.2, inplace=True))
 
         while osize > isize//pow(2, nshareD):
             main_share.add_module('pyarmid{}-{}.conv(share)'.format(ondf, ondf*2),
@@ -33,6 +33,12 @@ class DCGAN_D(nn.Module):
         for i in range(numOfClass):
             csize, cndf = osize, ondf
             main = nn.Sequential()
+
+            if nshareD == 0:
+                main.add_module('initial.conv.{}-{}'.format(nc, ndf),
+                    nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+                main.add_module('initial.relu.{}'.format(ndf),
+                    nn.LeakyReLU(0.2, inplace=True))
 
             # Extra layers
             for t in range(n_extra_layers):
@@ -127,10 +133,17 @@ class DCGAN_G(nn.Module):
             cngf = cngf // 2
             csize = csize * 2
 
-        main_share.add_module('final.{}-{}.convt(share)'.format(cngf, nc),
-                nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
-        main_share.add_module('final.{}.tanh(share)'.format(nc),
-                nn.Tanh())
+        if nshareG != 0:
+            main_share.add_module('final.{}-{}.convt(share)'.format(cngf, nc),
+                    nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
+            main_share.add_module('final.{}.tanh(share)'.format(nc),
+                    nn.Tanh())
+        else:
+            for main in generators:
+                main.add_module('final.{}-{}.convt'.format(cngf, nc),
+                    nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
+                main.add_module('final.{}.tanh'.format(nc),
+                    nn.Tanh())
 
         self.generators = generators
         self.main_share = main_share
