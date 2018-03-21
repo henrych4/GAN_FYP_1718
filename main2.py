@@ -135,21 +135,24 @@ if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
 print(netD)
 
+noiseList = []
+fixedNoiseList = []
 input = torch.FloatTensor(opt.batchSize, nc, opt.imageSize, opt.imageSize)
-noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
-fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
 one = torch.FloatTensor([1])
 mone = one * -1
+for i in range(numOfClass):
+    noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
+    fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
+    noiseList.append(noise)
+    fixedNoiseList.append(fixed_noise)
 
 if opt.cuda:
     netD.cuda()
     netG.cuda()
     input = input.cuda()
     one, mone = one.cuda(), mone.cuda()
-    noise = noise.cuda()
-    fixed_noise = fixed_noise.cuda()
-noiseList = [noise for i in range(numOfClass)]
-fixedNoiseList = [fixed_noise for i in range(numOfClass)]
+    noiseList = [noise.cuda() for noise in noiseList]
+    fixedNoiseList = [fixedNoise.cuda() for fixedNoise in fixedNoiseList]
 
 # setup optimizer
 assert((opt.sumD or opt.oneD) and (opt.sumG or opt.oneG))
