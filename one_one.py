@@ -184,6 +184,7 @@ for epoch in range(opt.niter):
     while i < data_length:
         for index, dataIter in enumerate(dataIterList):
             cur_iterations = gen_iterations // numOfClass
+            cur_i = i
             ############################
             # (1) Update D network
             ###########################
@@ -196,7 +197,7 @@ for epoch in range(opt.niter):
             else:
                 Diters = opt.Diters
             j = 0
-            while j < Diters and i < data_length:
+            while j < Diters and cur_i < data_length:
                 j += 1
 
                 # clamp parameters to a cube
@@ -204,7 +205,7 @@ for epoch in range(opt.niter):
                     p.data.clamp_(opt.clamp_lower, opt.clamp_upper)
 
                 data = dataIter.next()
-                i+=1
+                cur_i += 1
 
                 # train with real
                 real_cpu, _ = data
@@ -246,8 +247,11 @@ for epoch in range(opt.niter):
             optimizerG_step(index)
             gen_iterations += 1
 
-            print('[{}/{}][{}/{}][{}] class: {} errD: {} errG: {}'.format(epoch, opt.niter, i, data_length, cur_iterations, \
-            index, errD.data[0], errG.data[0]))
+            print('[{}/{}][{}/{}][{}] class: {} errD: {} errG: {}'.format(epoch, opt.niter, cur_i, data_length, \
+            cur_iterations, index, errD.data[0], errG.data[0]))
+
+            if index == numOfClass-1:
+                i = cur_i
 
             if cur_iterations % 500 == 0:
                 real_cpu = real_cpu.mul(0.5).add(0.5)
