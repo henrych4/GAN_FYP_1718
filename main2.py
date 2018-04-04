@@ -17,7 +17,7 @@ import torchvision.utils as vutils
 
 import models.dcgan as dcgan
 import models.mlp as mlp
-import models.mixgan as mixgan
+import models.mix_dcgan as mix_dcgan
 
 startTime = time.time()
 parser = argparse.ArgumentParser()
@@ -121,14 +121,14 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-netG = mixgan.DCGAN_G(numOfClass, opt.imageSize, nz, nc, ngf, ngpu, nshareG, n_extra_layers)
+netG = mix_dcgan.DCGAN_G(numOfClass, opt.imageSize, nz, nc, ngf, ngpu, nshareG, n_extra_layers)
 
 netG.apply(weights_init)
 if opt.netG != '': # load checkpoint if nnceded
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = mixgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, nshareD, n_extra_layers)
+netD = mix_dcgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, nshareD, n_extra_layers)
 
 netD.apply(weights_init)
 if opt.netD != '':
