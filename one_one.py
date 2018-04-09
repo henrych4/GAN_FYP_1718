@@ -51,6 +51,7 @@ parser.add_argument('--n_extra_layers', type=int, default=0, help='Number of ext
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--gpu', type=int, default='0', help='which gpu to use')
+parser.add_argument('--dropout', action='store_true')
 
 opt = parser.parse_args()
 print(opt)
@@ -108,6 +109,7 @@ nc = int(opt.nc)
 nshareG = int(opt.nshareG)
 nshareD = int(opt.nshareD)
 n_extra_layers = int(opt.n_extra_layers)
+dropout = opt.dropout
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -125,7 +127,7 @@ if opt.netG != '': # load checkpoint if nnceded
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = mix_dcgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, nshareD, n_extra_layers)
+netD = mix_dcgan.DCGAN_D(numOfClass, opt.imageSize, nz, nc, ndf, ngpu, nshareD, dropout, n_extra_layers)
 
 netD.apply(weights_init)
 if opt.netD != '':

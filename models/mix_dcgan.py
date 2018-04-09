@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.parallel
 
 class DCGAN_D(nn.Module):
-    def __init__(self, numOfClass, isize, nz, nc, ndf, ngpu, nshareD, n_extra_layers=0):
+    def __init__(self, numOfClass, isize, nz, nc, ndf, ngpu, nshareD, dropout, n_extra_layers=0):
         super(DCGAN_D, self).__init__()
         self.ngpu = ngpu
         assert isize % 16 == 0, "isize has to be a multiple of 16"
@@ -18,6 +18,9 @@ class DCGAN_D(nn.Module):
                     nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
             main_share.add_module('initial.relu.{}(share)'.format(ndf),
                     nn.LeakyReLU(0.2, inplace=True))
+            if dropout:
+                main_share.add_module('initial.dropout.{}(share)'.format(ndf),
+                        nn.Dropout(0.5, inplace=True))
 
         while osize > isize//pow(2, nshareD):
             main_share.add_module('pyarmid{}-{}.conv(share)'.format(ondf, ondf*2),
@@ -26,6 +29,9 @@ class DCGAN_D(nn.Module):
                     nn.BatchNorm2d(ondf*2))
             main_share.add_module('pyramid.{}.relu(share)'.format(ondf*2),
                     nn.LeakyReLU(0.2, inplace=True))
+            if dropout:
+                main_share.add_module('pyramid.{}.dropout(share)'.format(ondf*2),
+                        nn.Dropout(0.5, inplace=True))
             ondf = ondf * 2
             osize = osize / 2
 
@@ -39,6 +45,9 @@ class DCGAN_D(nn.Module):
                     nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
                 main.add_module('initial.relu.{}'.format(ndf),
                     nn.LeakyReLU(0.2, inplace=True))
+                if dropout:
+                    main.add_module('initial.dropout.{}'.format(ndf),
+                        nn.Dropout(0.5, inplace=True))
 
             # Extra layers
             for t in range(n_extra_layers):
@@ -56,6 +65,9 @@ class DCGAN_D(nn.Module):
                                 nn.BatchNorm2d(cndf*2))
                 main.add_module('pyramid{}.{}.relu'.format(i, cndf*2),
                                 nn.LeakyReLU(0.2, inplace=True))
+                if dropout:
+                    main.add_module('pyramid{}.{}.dropout'.format(i, cndf*2),
+                                    nn.Dropout(0.5, inplace=True))
                 cndf = cndf * 2
                 csize = csize / 2
 
