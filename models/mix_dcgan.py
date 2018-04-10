@@ -82,15 +82,25 @@ class DCGAN_D(nn.Module):
     def forward(self, inputList, index=None):
         if index is not None:
             index = index.data[0]
-            output = self.discriminators[index](self.main_share(inputList))
-            output = output.mean(0).view(1)
+            if self.ngpu > 1:
+                output = nn.parallel.data_parallel(self.main_share, inputList, range(self.ngpu))
+                output = nn.parallel.data_parallel(self.discriminators[index], output, range(self.ngpu))
+                output = output.mean(0).view(1)
+            else:
+                output = self.discriminators[index](self.main_share(inputList))
+                output = output.mean(0).view(1)
             return output
         else:
             outputList = []
             for i, input in enumerate(inputList):
-                output = self.discriminators[i](self.main_share(input))
-                output = output.mean(0)
-            outputList.append(output.view(1))
+                if self.ngpu > 1:
+                    output = nn.parallel.data_parallel(self.main_share, input, range(self.ngpu))
+                    output = nn.parallel.data_parallel(self.discriminators[i], output, range(self.ngpu))
+                    output = output.mean(0).view(1)
+                else:
+                    output = self.discriminators[i](self.main_share(input))
+                    output = output.mean(0).view(1)
+                outputList.append(output)
             return outputList
 
 class DCGAN_G(nn.Module):
@@ -167,11 +177,19 @@ class DCGAN_G(nn.Module):
     def forward(self, inputList, index=None):
         if index is not None:
             index = index.data[0]
-            output = self.main_share(self.generators[index](inputList))
+            if self.ngpu > 1:
+                output = nn.parallel.data_parallel(self.generators[index], inputList, range(self.ngpu))
+                output = nn.parallel.data_parallel(self.main_share, output, range(self.ngpu))
+            else:
+                output = self.main_share(self.generators[index](inputList))
             return output
         else:
             outputList = []
             for i, input in enumerate(inputList):
-                output = self.main_share(self.generators[i](input))
-                outputList.append(output)
+                if self.ngpu > 1:
+                    output = nn.parallel.data_parallel(self.generators[i], input, range(self.ngpu))
+                    output = nn.parallel.data_parallel(self.main_share, output, range(self.ngpu))
+                else:
+                    output = self.main_share(self.generators[i](input))
+                    outputList.append(output)
             return outputList
