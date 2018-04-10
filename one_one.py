@@ -19,6 +19,7 @@ import torchvision.utils as vutils
 import models.dcgan as dcgan
 import models.mlp as mlp
 import models.mix_dcgan as mix_dcgan
+import datetime
 
 startTime = time.time()
 parser = argparse.ArgumentParser()
@@ -97,7 +98,7 @@ for datasetType, dataPath in zip(opt.dataset, opt.datapath):
                                ]))
     assert dataset
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
-                                             shuffle=True, num_workers=int(opt.workers))
+                                             shuffle=True, num_workers=int(opt.workers), pin_memory=True)
     data_length = min(data_length, len(dataloader))
     dataloaderList.append(dataloader)
 
@@ -214,7 +215,7 @@ for epoch in range(opt.niter):
                 netD.zero_grad()
 
                 if opt.cuda:
-                    real_cpu = real_cpu.cuda()
+                    real_cpu = real_cpu.cuda(async=True)
                 input.resize_as_(real_cpu).copy_(real_cpu)
                 inputv = Variable(input)
 
@@ -249,8 +250,7 @@ for epoch in range(opt.niter):
             optimizerG_step(index)
             gen_iterations += 1
 
-            print('[{}/{}][{}/{}][{}] class: {} errD: {} errG: {}'.format(epoch, opt.niter, cur_i, data_length, \
-            cur_iterations, index, errD.data[0], errG.data[0]))
+            print(f'{datetime.datetime.now()}[{epoch}/{opt.niter}][{cur_i}/{data_length}][{cur_iterations}] class: {index} errD: {errD.data[0]} errG: {errG.data[0]}')
 
             if index == numOfClass-1:
                 i = cur_i
